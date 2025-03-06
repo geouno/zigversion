@@ -1,5 +1,9 @@
 const std = @import("std");
 const rl = @import("raylib");
+const c = @cImport({
+    @cInclude("rlImGui.h");
+});
+const z = @import("zgui");
 
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
@@ -26,6 +30,13 @@ pub fn main() !void {
     const screenHeight = 720;
     rl.initWindow(screenWidth, screenHeight, "zigversion");
     defer rl.closeWindow();
+
+    // Initialize imgui backend
+    c.rlImGuiSetup(true);
+    defer c.rlImGuiShutdown();
+    // Initialize zgui
+    z.initNoContext(std.heap.c_allocator);
+    defer z.deinitNoContext();
 
     // Get image path from stdin
     var imagePath_buf: [1024]u8 = undefined;
@@ -145,6 +156,19 @@ pub fn main() !void {
         );
         total_shadertime_micros += elapsed_time;
         frame_count += 1;
+
+        // Draw imgui
+        c.rlImGuiBegin();
+        defer c.rlImGuiEnd();
+
+        {
+            _ = z.begin("Hello imgui", .{});
+            defer z.end();
+            const fontSize = z.getFontSize();
+            var buf: [64]u8 = undefined;
+            const text = std.fmt.bufPrintZ(&buf, "Font size is {d}px", .{fontSize}) catch unreachable;
+            _ = z.textUnformatted(text);
+        }
     }
     // Log average shader rendering time
     const mean_shadertime_micros = @divTrunc(total_shadertime_micros, frame_count);

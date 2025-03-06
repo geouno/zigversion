@@ -27,6 +27,14 @@
             .url = "git+https://github.com/Not-Nik/raylib-zig?ref=devel#bc82c6ebd7b9ba31437f3dcf34064106749edcf7",
             .hash = "1220c35d89a132529b7081dde0778f00719c0f6b76f7e88fe6c7af0843a0d92dfb7c",
         },
+        .rlimgui = .{
+            .url = "https://github.com/raylib-extras/rlImGui/archive/9acdbbf255f80f83d7054249bc795f8b745c06f9.tar.gz",
+            .hash = "12201bba0257f966b93b394dbaa9b9144f274cf16155483d696189033bc1cb2265db",
+        },
+        .zgui = .{
+            .url = "git+https://github.com/zig-gamedev/zgui?ref=main#5f0e01e8cd7f423a27ad56a712e9770a81d5d272",
+            .hash = "12209ee39f11d6100f84b848858b4048f208f70e06091ccf603879caf0e86fbd058a",
+        },
     },
     .paths = .{
         "build.zig",

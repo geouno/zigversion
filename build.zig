@@ -24,6 +24,19 @@ pub fn build(b: *std.Build) void {
     const raygui = raylib_dep.module("raygui"); // raygui module
     const raylib_artifact = raylib_dep.artifact("raylib"); // raylib C library
 
+    const zgui_dep = b.dependency("zgui", .{
+        .shared = false,
+        // .with_implot = true,
+        .backend = .no_backend, // We will use rlImGui backend
+    });
+    const zgui = zgui_dep.module("root"); // zgui module
+    const zgui_artifact = zgui_dep.artifact("imgui"); // zgui C library
+
+    const rlimgui_dep = b.dependency("rlimgui", .{
+        .target = target,
+        .optimize = optimize,
+    });
+
     const lib = b.addStaticLibrary(.{
         .name = "zigversion",
         // In this case the main source file is merely a path, however, in more
@@ -48,6 +61,21 @@ pub fn build(b: *std.Build) void {
     exe.linkLibrary(raylib_artifact);
     exe.root_module.addImport("raylib", raylib);
     exe.root_module.addImport("raygui", raygui);
+
+    exe.linkLibrary(zgui_artifact);
+    exe.root_module.addImport("zgui", zgui);
+    exe.addIncludePath(zgui_dep.path("libs/imgui"));
+
+    exe.root_module.addCSourceFile(.{
+        .file = rlimgui_dep.path("rlImGui.cpp"),
+        .flags = &.{
+            "-fno-sanitize=undefined",
+            "-std=c++11",
+            "-Wno-deprecated-declarations",
+            "-DNO_FONT_AWESOME",
+        },
+    });
+    exe.addIncludePath(rlimgui_dep.path("."));
 
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
