@@ -5,6 +5,34 @@ const c = @cImport({
 });
 const z = @import("zgui");
 
+const WindowState = struct {
+    var width: i32 = 960;
+    var height: i32 = 720;
+    var padding: i32 = 16;
+    var paddedWidth: i32 = undefined;
+    var paddedHeight: i32 = undefined;
+
+    pub fn init() void {
+        computePaddedDimensions();
+    }
+
+    pub fn resize(new_width: i32, new_height: i32) void {
+        width = new_width;
+        height = new_height;
+        computePaddedDimensions();
+    }
+
+    pub fn setPadding(new_padding: i32) void {
+        padding = new_padding;
+        computePaddedDimensions();
+    }
+
+    fn computePaddedDimensions() void {
+        paddedWidth = width - 2 * padding;
+        paddedHeight = height - 2 * padding;
+    }
+};
+
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
@@ -26,9 +54,8 @@ pub fn main() !void {
     std.debug.print("Current working directory: {s}\n", .{cwd});
 
     // Initialize window
-    const screenWidth = 960;
-    const screenHeight = 720;
-    rl.initWindow(screenWidth, screenHeight, "zigversion");
+    WindowState.init();
+    rl.initWindow(WindowState.width, WindowState.height, "zigversion");
     defer rl.closeWindow();
 
     // Initialize imgui backend
@@ -58,25 +85,21 @@ pub fn main() !void {
     rl.unloadImage(image);
 
     // Calculate scaling factor to fit the image within the window with padding
-    const padding: f32 = 16.0;
-    const paddedWidth = @as(f32, @floatFromInt(screenWidth)) - 2 * padding;
-    const paddedHeight = @as(f32, @floatFromInt(screenHeight)) - 2 * padding;
-
-    const windowAspectRatio = @as(f32, @floatFromInt(screenWidth)) / @as(f32, @floatFromInt(screenHeight));
+    const windowAspectRatio = @as(f32, @floatFromInt(WindowState.width)) / @as(f32, @floatFromInt(WindowState.width));
     const imageAspectRatio = @as(f32, @floatFromInt(texture.width)) / @as(f32, @floatFromInt(texture.height));
 
     var scale: f32 = 1.0;
-    var offsetX: f32 = padding;
-    var offsetY: f32 = padding;
+    var offsetX: f32 = @as(f32, @floatFromInt(WindowState.padding));
+    var offsetY: f32 = @as(f32, @floatFromInt(WindowState.padding));
 
     if (imageAspectRatio > windowAspectRatio) {
         // Image is wider than the window, scale based on width
-        scale = paddedWidth / @as(f32, @floatFromInt(texture.width));
-        offsetY += (paddedHeight - (@as(f32, @floatFromInt(texture.height)) * scale)) / 2;
+        scale = @as(f32, @floatFromInt(WindowState.paddedWidth)) / @as(f32, @floatFromInt(texture.width));
+        offsetY += (@as(f32, @floatFromInt(WindowState.paddedHeight)) - (@as(f32, @floatFromInt(texture.height)) * scale)) / 2;
     } else {
         // Image is taller than the window, scale based on height
-        scale = paddedHeight / @as(f32, @floatFromInt(texture.height));
-        offsetX += (paddedWidth - (@as(f32, @floatFromInt(texture.width)) * scale)) / 2;
+        scale = @as(f32, @floatFromInt(WindowState.paddedHeight)) / @as(f32, @floatFromInt(texture.height));
+        offsetX += (@as(f32, @floatFromInt(WindowState.paddedWidth)) - (@as(f32, @floatFromInt(texture.width)) * scale)) / 2;
     }
 
     // Load the shader
