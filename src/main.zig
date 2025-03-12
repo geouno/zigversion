@@ -33,6 +33,39 @@ const WindowState = struct {
     }
 };
 
+const LoadedResource = struct {
+    texture: rl.Texture = undefined,
+    scale: f32 = 1.0,
+    offsetX: f32 = 0.0,
+    offsetY: f32 = 0.0,
+};
+fn loadImage(path: [:0]const u8, resource: *LoadedResource) !void {
+    const image = try rl.loadImage(path);
+    defer rl.unloadImage(image);
+
+    resource.texture = try rl.loadTextureFromImage(image);
+
+    computeScaleAndOffset(resource);
+}
+fn computeScaleAndOffset(resource: *LoadedResource) void {
+    resource.offsetX = @as(f32, @floatFromInt(WindowState.padding));
+    resource.offsetY = @as(f32, @floatFromInt(WindowState.padding));
+
+    // Calculate scaling factor to fit the image within the window with padding
+    const windowAspectRatio = @as(f32, @floatFromInt(WindowState.width)) / @as(f32, @floatFromInt(WindowState.height));
+    const imageAspectRatio = @as(f32, @floatFromInt(resource.texture.width)) / @as(f32, @floatFromInt(resource.texture.height));
+
+    if (imageAspectRatio > windowAspectRatio) {
+        // Image is wider than the window, scale based on width
+        resource.scale = @as(f32, @floatFromInt(WindowState.paddedWidth)) / @as(f32, @floatFromInt(resource.texture.width));
+        resource.offsetY += (@as(f32, @floatFromInt(WindowState.paddedHeight)) - (@as(f32, @floatFromInt(resource.texture.height)) * resource.scale)) / 2;
+    } else {
+        // Image is taller than the window, scale based on height
+        resource.scale = @as(f32, @floatFromInt(WindowState.paddedHeight)) / @as(f32, @floatFromInt(resource.texture.height));
+        resource.offsetX += (@as(f32, @floatFromInt(WindowState.paddedWidth)) - (@as(f32, @floatFromInt(resource.texture.width)) * resource.scale)) / 2;
+    }
+}
+
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
@@ -73,34 +106,12 @@ pub fn main() !void {
     imagePath_buf[imagePath_input.len] = 0; // Null terminate string
     const imagePath = imagePath_buf[0..imagePath_input.len :0];
 
-    const image = rl.loadImage(imagePath) catch |err| {
+    var resource = LoadedResource{};
+    loadImage(imagePath, &resource) catch |err| {
         std.debug.print("Failed to load image: {}\n", .{err});
-        return;
     };
-    const texture = rl.loadTextureFromImage(image) catch |err| {
-        std.debug.print("Failed to load texture: {}\n", .{err});
-        return;
-    };
-    defer rl.unloadTexture(texture);
-    rl.unloadImage(image);
-
-    // Calculate scaling factor to fit the image within the window with padding
-    const windowAspectRatio = @as(f32, @floatFromInt(WindowState.width)) / @as(f32, @floatFromInt(WindowState.width));
-    const imageAspectRatio = @as(f32, @floatFromInt(texture.width)) / @as(f32, @floatFromInt(texture.height));
-
-    var scale: f32 = 1.0;
-    var offsetX: f32 = @as(f32, @floatFromInt(WindowState.padding));
-    var offsetY: f32 = @as(f32, @floatFromInt(WindowState.padding));
-
-    if (imageAspectRatio > windowAspectRatio) {
-        // Image is wider than the window, scale based on width
-        scale = @as(f32, @floatFromInt(WindowState.paddedWidth)) / @as(f32, @floatFromInt(texture.width));
-        offsetY += (@as(f32, @floatFromInt(WindowState.paddedHeight)) - (@as(f32, @floatFromInt(texture.height)) * scale)) / 2;
-    } else {
-        // Image is taller than the window, scale based on height
-        scale = @as(f32, @floatFromInt(WindowState.paddedHeight)) / @as(f32, @floatFromInt(texture.height));
-        offsetX += (@as(f32, @floatFromInt(WindowState.paddedWidth)) - (@as(f32, @floatFromInt(texture.width)) * scale)) / 2;
-    }
+    defer rl.unloadTexture(resource.texture);
+    computeScaleAndOffset(&resource);
 
     // Load the shader
     const inversionShader: rl.Shader = rl.loadShader(null, "./src/inversion.fs") catch |err| {
@@ -118,13 +129,13 @@ pub fn main() !void {
         inversionShader,
         circleCenterLoc,
         &[2]f32{
-            @as(f32, @floatFromInt(@divTrunc(texture.width, 2))),
-            @as(f32, @floatFromInt(@divTrunc(texture.height, 2))),
+            @as(f32, @floatFromInt(@divTrunc(resource.texture.width, 2))),
+            @as(f32, @floatFromInt(@divTrunc(resource.texture.height, 2))),
         },
         rl.ShaderUniformDataType.vec2,
     ); // Center of inversion at the center of the image
     rl.setShaderValue(inversionShader, circleRadiusLoc, &@as(f32, 100), rl.ShaderUniformDataType.float);
-    const textureSize = [2]f32{ @floatFromInt(texture.width), @floatFromInt(texture.height) };
+    const textureSize = [2]f32{ @floatFromInt(resource.texture.width), @floatFromInt(resource.texture.height) };
     rl.setShaderValue(inversionShader, textureSizeLoc, &textureSize, rl.ShaderUniformDataType.vec2);
 
     // Set target FPS
@@ -148,8 +159,8 @@ pub fn main() !void {
         // Check if mouse position is available
         if (!(mousePos.x == 0 and mousePos.y == 0)) {
             // Adjust them to be relative to the image
-            const relativeMouseX = (mousePos.x - offsetX) / scale;
-            const relativeMouseY = (mousePos.y - offsetY) / scale;
+            const relativeMouseX = (mousePos.x - resource.offsetX) / resource.scale;
+            const relativeMouseY = (mousePos.y - resource.offsetY) / resource.scale;
             // Set shader uniforms
             rl.setShaderValue(
                 inversionShader,
@@ -162,10 +173,10 @@ pub fn main() !void {
 
         rl.beginShaderMode(inversionShader);
         rl.drawTextureEx(
-            texture,
-            rl.Vector2{ .x = offsetX, .y = offsetY },
+            resource.texture,
+            rl.Vector2{ .x = resource.offsetX, .y = resource.offsetY },
             0.0, // Rotation
-            scale, // Scaling factor
+            resource.scale, // Scaling factor
             rl.Color.black,
         );
         rl.endShaderMode();
