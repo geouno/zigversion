@@ -90,6 +90,7 @@ pub fn main() !void {
     WindowState.init();
     rl.initWindow(WindowState.width, WindowState.height, "zigversion");
     defer rl.closeWindow();
+    rl.setWindowState(.{ .window_resizable = true });
 
     // Initialize imgui backend
     c.rlImGuiSetup(true);
@@ -146,6 +147,11 @@ pub fn main() !void {
     var frame_count: i64 = 0;
     rl.setWindowFocused();
     while (!rl.windowShouldClose()) {
+        if (rl.isWindowResized()) {
+            WindowState.resize(rl.getScreenWidth(), rl.getScreenHeight());
+            computeScaleAndOffset(&resource);
+        }
+
         rl.beginDrawing();
         defer rl.endDrawing();
 
