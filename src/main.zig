@@ -98,6 +98,7 @@ pub fn main() !void {
     // Initialize zgui
     z.initNoContext(std.heap.c_allocator);
     defer z.deinitNoContext();
+    z.io.setIniFilename(null);
 
     // Get image path from stdin
     var imagePath_buf: [1024]u8 = undefined;
