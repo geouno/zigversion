@@ -120,22 +120,25 @@ pub fn main() !void {
         return; // Exit the program if the shader fails to load
     };
 
+    // Declare inversion related variables
+    const CircleOfInversion = struct {
+        var radius: f32 = 100.0;
+        var center: [2]f32 = undefined;
+    };
+    // Initialize center of inversion at the center of the image
+    CircleOfInversion.center = .{
+        @as(f32, @floatFromInt(@divTrunc(resource.texture.width, 2))),
+        @as(f32, @floatFromInt(@divTrunc(resource.texture.height, 2))),
+    };
+
     // Get uniform locations
     const circleCenterLoc = rl.getShaderLocation(inversionShader, "circleCenter");
     const circleRadiusLoc = rl.getShaderLocation(inversionShader, "circleRadius");
     const textureSizeLoc = rl.getShaderLocation(inversionShader, "textureSize");
 
     // Set initial shader uniforms
-    rl.setShaderValue(
-        inversionShader,
-        circleCenterLoc,
-        &[2]f32{
-            @as(f32, @floatFromInt(@divTrunc(resource.texture.width, 2))),
-            @as(f32, @floatFromInt(@divTrunc(resource.texture.height, 2))),
-        },
-        rl.ShaderUniformDataType.vec2,
-    ); // Center of inversion at the center of the image
-    rl.setShaderValue(inversionShader, circleRadiusLoc, &@as(f32, 100), rl.ShaderUniformDataType.float);
+    rl.setShaderValue(inversionShader, circleCenterLoc, &CircleOfInversion.center, rl.ShaderUniformDataType.vec2);
+    rl.setShaderValue(inversionShader, circleRadiusLoc, &CircleOfInversion.radius, rl.ShaderUniformDataType.float);
     const textureSize = [2]f32{ @floatFromInt(resource.texture.width), @floatFromInt(resource.texture.height) };
     rl.setShaderValue(inversionShader, textureSizeLoc, &textureSize, rl.ShaderUniformDataType.vec2);
 
@@ -165,16 +168,16 @@ pub fn main() !void {
         // Check if mouse position is available
         if (!(mousePos.x == 0 and mousePos.y == 0)) {
             // Adjust them to be relative to the image
-            const relativeMouseX = (mousePos.x - resource.offsetX) / resource.scale;
-            const relativeMouseY = (mousePos.y - resource.offsetY) / resource.scale;
+            CircleOfInversion.center[0] = (mousePos.x - resource.offsetX) / resource.scale;
+            CircleOfInversion.center[1] = (mousePos.y - resource.offsetY) / resource.scale;
             // Set shader uniforms
             rl.setShaderValue(
                 inversionShader,
                 circleCenterLoc,
-                &[2]f32{ relativeMouseX, relativeMouseY },
+                &CircleOfInversion.center,
                 rl.ShaderUniformDataType.vec2,
             ); // Center of the circle
-            rl.setShaderValue(inversionShader, circleRadiusLoc, &@as(f32, 100), rl.ShaderUniformDataType.float);
+            rl.setShaderValue(inversionShader, circleRadiusLoc, &CircleOfInversion.radius, rl.ShaderUniformDataType.float);
         }
 
         rl.beginShaderMode(inversionShader);
