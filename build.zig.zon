@@ -32,8 +32,8 @@
             .hash = "12201bba0257f966b93b394dbaa9b9144f274cf16155483d696189033bc1cb2265db",
         },
         .zgui = .{
-            .url = "git+https://github.com/zig-gamedev/zgui?ref=main#5f0e01e8cd7f423a27ad56a712e9770a81d5d272",
-            .hash = "12209ee39f11d6100f84b848858b4048f208f70e06091ccf603879caf0e86fbd058a",
+            .url = "git+https://github.com/geouno/zgui-0.13?ref=main#fb6532e5d877c2996d58e287505e241921c28b10",
+            .hash = "1220a51f788dc97e3a68bd0713fcf4054f43c17383e0443ee8ae7a39b20024fc8849",
         },
     },
     .paths = .{
