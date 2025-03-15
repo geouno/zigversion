@@ -205,13 +205,45 @@ pub fn main() !void {
         c.rlImGuiBegin();
         defer c.rlImGuiEnd();
 
+        // Inversion settings window
         {
-            _ = z.begin("Hello imgui", .{});
+            _ = z.begin("Inversion settings", .{});
             defer z.end();
-            const fontSize = z.getFontSize();
-            var buf: [64]u8 = undefined;
-            const text = std.fmt.bufPrintZ(&buf, "Font size is {d}px", .{fontSize}) catch unreachable;
-            _ = z.textUnformatted(text);
+
+            z.separatorText("Circle of inversion");
+
+            // Center sliders
+            // My sliderFloat2-like solution with different bounds for the two sliders
+            // ImGui's default item width is 0.65 * window width
+            z.pushItemWidth(@divTrunc(z.getWindowWidth() * 0.65 - 4.0, 2.0));
+            _ = z.sliderFloat("##center_x", .{
+                .v = &CircleOfInversion.center[0],
+                .min = -CircleOfInversion.radius,
+                .max = @as(f32, @floatFromInt(resource.texture.width)) + CircleOfInversion.radius,
+            });
+            z.sameLine(.{ .spacing = 4.0 });
+            z.pushItemWidth(@divTrunc(z.getWindowWidth() * 0.65 - 4.0 + 1.0, 2.0));
+            _ = z.sliderFloat("##center_y", .{
+                .v = &CircleOfInversion.center[1],
+                .min = -CircleOfInversion.radius,
+                .max = @as(f32, @floatFromInt(resource.texture.height)) + CircleOfInversion.radius,
+            });
+            // Bounds allow circle's center to move radius units beyond image edges
+            z.sameLine(.{ .spacing = 4.0 });
+            z.text("Center (x,y)", .{});
+            // Pushed floor first and then ceil because this is how sliderFloat2's sliders behave
+            z.popItemWidth();
+            z.popItemWidth();
+
+            // Radius slider
+            const imageDiagonal = @as(f32, @sqrt(@as(f32, @floatFromInt(
+                resource.texture.width * resource.texture.width + resource.texture.height * resource.texture.height,
+            ))));
+            _ = z.sliderFloat("Radius", .{
+                .v = &CircleOfInversion.radius,
+                .min = 0.0,
+                .max = imageDiagonal / 2.0,
+            });
         }
     }
     // Log average shader rendering time
