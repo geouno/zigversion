@@ -207,6 +207,45 @@ pub fn main() !void {
 
         // Inversion settings window
         {
+            // Give enough width
+            z.setNextWindowSize(.{ .w = 300, .h = 0, .cond = .once });
+
+            // Position at the top left corner
+            z.setNextWindowPos(.{ .x = 0, .y = 0, .cond = .once });
+
+            // Increase background translucency
+            const style = z.getStyle();
+            const title_bg = style.getColor(.title_bg);
+            z.pushStyleColor4f(.{
+                .idx = .title_bg,
+                .c = .{ title_bg[0], title_bg[1], title_bg[2], 0.6875 },
+            });
+            const title_bg_active = style.getColor(.title_bg_active);
+            z.pushStyleColor4f(.{
+                .idx = .title_bg_active,
+                .c = .{ title_bg_active[0], title_bg_active[1], title_bg_active[2], 0.6875 },
+            });
+            const title_bg_collapsed = style.getColor(.title_bg_collapsed);
+            z.pushStyleColor4f(.{
+                .idx = .title_bg_collapsed,
+                .c = .{ title_bg_collapsed[0], title_bg_collapsed[1], title_bg_collapsed[2], 0.6875 },
+            });
+            const window_bg = style.getColor(.window_bg);
+            z.pushStyleColor4f(.{
+                .idx = .window_bg,
+                .c = .{ window_bg[0], window_bg[1], window_bg[2], 0.3125 },
+            });
+            // Make sliders light gray for better contrast
+            z.pushStyleColor4f(.{
+                .idx = .slider_grab,
+                .c = .{ 0.875, 0.875, 1.0, 0.375 },
+            });
+            z.pushStyleColor4f(.{
+                .idx = .slider_grab_active,
+                .c = .{ 0.875, 0.875, 1.0, 0.6875 },
+            });
+            defer z.popStyleColor(.{ .count = 6 });
+
             _ = z.begin("Inversion settings", .{});
             defer z.end();
 
